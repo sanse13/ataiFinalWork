@@ -107,7 +107,7 @@ patrollingRadius(32).
                 if (aliadoEncontrado("true")){
                     ?found_allied_obj(alliedObj);
                     .nth(4, alliedObj, distancia_a_aliado);
-                    if (distancia_a_aliado>distancia_a_enemigo){ // el aliado está más cerca que el enemigo
+                    if (distancia_a_aliado>distancia_a_enemigo){ // el aliado está más lejos que el enemigo
                         -+canShootEnemy("true");
                     } else {
                         -+canShootEnemy("false");
