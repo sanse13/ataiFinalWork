@@ -9,9 +9,7 @@ team("AXIS").
 type("CLASS_SOLDIER").
 
 // Value of "closeness" to the Flag, when patrolling in defense
-patrollingRadius(32).
-
-// mirar que cuando uno tiene la bandera se hace "invisible"
+patrollingRadius(20).
 
 
 { include("jgomas.asl") }
@@ -44,88 +42,95 @@ patrollingRadius(32).
     <-  ?debug(Mode); if (Mode<=2) { .println("Looking for agents to aim."); }
         ?fovObjects(FOVObjects);
         .length(FOVObjects, Length);
-        
+
         ?debug(Mode); if (Mode<=1) { .println("El numero de objetos es:", Length); }
 
-        /* .my_team("ALLIED", B1);
-        .concat("end_of_game",MyContent1);  
-        .send_msg_with_conversation_id(B1,    tell,    MyContent1,    "INT");
- */
-       
-        // calcular la distancia euclidea entre aliado y enemigo en el bucle de los objetos en el fov
 
-        if (Length > 0) { // hay objetos en el fov
+        +bucleAliados(0);
+        +distAliadoMin(5000000);
+
+        while(Length > 0 & bucleAliados(X) & X < Length){
+
+            .nth(X, FOVObjects, Object);
+            // Object structure
+            // [#, TEAM, TYPE, ANGLE, DISTANCE, HEALTH, POSITION ]
+            .nth(2, Object, Type);
+            .nth(1, Object, Team);
+            .nth(6, Object, Pos);
+
+
+            if(Type <= 1000 & Team == 200){
+
+                .concat("aliado", Pos, APos); // asigno la posicion Pos a APos
+                .term2string(ATPost,APos);
+                +ATPost;
+                ?aliadopos(Xa, Ya, Za);
+                ?my_position(Xmy, Ymy, Zmy);
+                ?distAliadoMin(DistMin);
+                 DistEuclidea =   math.sqrt((Xa - Xmy)*(Xa - Xmy) + (Za - Zmy)*(Za - Zmy));
+                 if (DistEuclidea < DistMin ){
+                     -+distAliadoMin(DistEuclidea);
+                 }
+
+
+            }
+
+
+            -+bucleAliados(X+1);
+        }
+
+        -bucleAliados(_);
+
+
+        if (Length > 0) {
 		    +bucle(0);
-            -+canShootEnemy("false");
-            -+enemigoEncontrado("false");
-            -+aliadoEncontrado("false"); 
-    
-            // -+aimed("false");
-    
-            while (bucle(X) & (X < Length)) {
-  
-                //.println("En el bucle, y X vale:", X);
-                
+
+            -+aimed("false");
+
+            while (aimed("false") & bucle(X) & (X < Length)) {
+
                 .nth(X, FOVObjects, Object);
-                // Object structure 
+                // Object structure
                 // [#, TEAM, TYPE, ANGLE, DISTANCE, HEALTH, POSITION ]
                 .nth(2, Object, Type);
-                
+
                 ?debug(Mode); if (Mode<=2) { .println("Objeto Analizado: ", Object); }
-                
+
                 if (Type > 1000) {
                     ?debug(Mode); if (Mode<=2) { .println("I found some object."); }
                 } else {
                     // Object may be an enemy
                     .nth(1, Object, Team);
                     ?my_formattedTeam(MyTeam);
-          
-                    if (Team == 100) {  // Only if I'm AXIS. Team 100 == ALLIED. ALLIED found
- 					    ?debug(Mode); if (Mode<=2) { .println("Aiming an enemy. . .", MyTeam, " ", .number(MyTeam) , " ", Team, " ", .number(Team)); }
-					    // +aimed_agent(Object); // esta funcion hace que dispare
-                        // -+aimed("true");
-                        -+found_enemy_obj(Object);
-                        -+enemigoEncontrado("true");
+
+                    if (Team == 100) {  // Only if I'm AXIS
+
+                        ?debug(Mode); if (Mode<=2) { .println("Aiming an enemy. . .", MyTeam, " ", .number(MyTeam) , " ", Team, " ", .number(Team)); }
+                        .nth(6, Object, PosEnemy);
+                        ?my_position(Xmy, Ymy, Zmy);
+                        ?distAliadoMin(DistMin);
+                        .concat("enemigo", PosEnemy, EPos);
+                        .term2string(ETPost,EPos);
+                        +ETPost;
+                        ?enemigopos(Xe, Ye, Ze);
+                        DistEuclideaEnemigo =   math.sqrt((Xe - Xmy)*(Xe - Xmy) + (Ze - Zmy)*(Ze - Zmy));
+                        if(DistEuclideaEnemigo < DistMin){
+                            +aimed_agent(Object);
+                            -+aimed("true");
+
+
+                        }
                     }
 
-                    if (Team == 200){
-                        -+found_allied_obj(Object);
-                        -+aliadoEncontrado("true");
-                    }
-                    
                 }
-             
+
                 -+bucle(X+1);
-                
+
             }
 
-            if (enemigoEncontrado("true")){
-                ?found_enemy_obj(enemyObj);
-                .nth(4, enemyObj, distancia_a_enemigo); // la posicion 4 nos da la distancia al agente
-                .println("he encontrado un enemigo");
-
-                if (aliadoEncontrado("true")){
-                    ?found_allied_obj(alliedObj);
-                    .nth(4, alliedObj, distancia_a_aliado);
-                    if (distancia_a_aliado>distancia_a_enemigo){ // el aliado está más lejos que el enemigo
-                        -+canShootEnemy("true");
-                    } else {
-                        -+canShootEnemy("false");
-                    }
-                } else {
-                    -+canShootEnemy("true");
-                }
-            }
-
-            if (canShootEnemy("true")){
-                +aimed_agent(enemyObj);
-            }
-                     
-       
         }
 
      -bucle(_).
-
         
 
 /////////////////////////////////
@@ -166,14 +171,17 @@ patrollingRadius(32).
         ?debug(Mode); if (Mode<=2) { .println("BAJO EL PUNTO DE MIRA TENGO A ALGUIEN DEL EQUIPO ", AimedAgentTeam); }
         ?my_formattedTeam(MyTeam);
 
-
         if (AimedAgentTeam == 100) {
         
             .nth(6, AimedAgent, NewDestination);
             ?debug(Mode); if (Mode<=1) { .println("NUEVO DESTINO MARCADO: ", NewDestination); }
+            !add_task(task(4000,"TASK_ATTACK","Manager",NewDestination,""));
             //update_destination(NewDestination);
-        }
-        .
+        }.
+
+
++!pos(NewDestination)[source(A)]
+<- !add_task(task(4000,"TASK_ATTACK","Manager",NewDestination,"")).
     
 /**
  * Action to do when the agent is looking at.
@@ -217,8 +225,8 @@ patrollingRadius(32).
 /**  You can change initial priorities if you want to change the behaviour of each agent  **/
 +!setup_priorities
     <-  +task_priority("TASK_NONE",0);
-        +task_priority("TASK_GIVE_MEDICPAKS", 2000);
-        +task_priority("TASK_GIVE_AMMOPAKS", 0);
+        +task_priority("TASK_GIVE_MEDICPAKS", 0);
+        +task_priority("TASK_GIVE_AMMOPAKS", 2000);
         +task_priority("TASK_GIVE_BACKUP", 0);
         +task_priority("TASK_GET_OBJECTIVE",1000);
         +task_priority("TASK_ATTACK", 1000);
