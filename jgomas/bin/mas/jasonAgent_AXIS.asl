@@ -118,7 +118,6 @@ patrollingRadius(20).
                             +aimed_agent(Object);
                             -+aimed("true");
 
-
                         }
                     }
 
@@ -179,9 +178,6 @@ patrollingRadius(20).
             //update_destination(NewDestination);
         }.
 
-
-+!pos(NewDestination)[source(A)]
-<- !add_task(task(4000,"TASK_ATTACK","Manager",NewDestination,"")).
     
 /**
  * Action to do when the agent is looking at.
