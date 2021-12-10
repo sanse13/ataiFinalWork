@@ -6,7 +6,7 @@ manager("Manager").
 // Team of troop.
 team("AXIS").
 // Type of troop.
-type("CLASS_SOLDIER").
+type("CLASS_MEDIC").
 
 // Value of "closeness" to the Flag, when patrolling in defense
 patrollingRadius(25).
